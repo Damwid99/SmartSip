@@ -26,6 +26,7 @@ mierzalny (Maughan 2016, Maughan i Griffin 2003), więc nie obniża mnożnika.
 Cukier i kofeinę liczyć osobno, nie przez mnożnik.
 """
 
+import datetime
 from typing import Literal, NamedTuple
 
 from sqlmodel import Session, col, select
@@ -36,6 +37,8 @@ import src.hydration.models  # noqa: F401
 import src.users.models  # noqa: F401
 from src.catalog.models import Container, DrinkType
 from src.core.database import engine
+from src.core.security import get_password_hash
+from src.users.models import Gender, Profile, User
 
 Evidence = Literal["A", "B", "C"]
 
@@ -247,10 +250,40 @@ def _sync_containers(session: Session) -> None:
 def seed_database() -> None:
     _validate()
     with Session(engine) as session:
+        # 1. Słowniki
         _sync_drinks(session)
         _sync_containers(session)
+
+        # 2. Domyślny użytkownik testowy (ID = 1) wraz z profilem
+        existing_user = session.exec(select(User)).first()
+        if not existing_user:
+            test_user = User(
+                email="dev@smartsip.local",
+                hashed_password=get_password_hash("SuperSecret123!"),
+                is_active=True,
+            )
+            session.add(test_user)
+            session.commit()
+            session.refresh(test_user)
+
+            assert test_user.id is not None
+            test_profile = Profile(
+                user_id=test_user.id,
+                username="damwid",
+                gender=Gender.MALE,
+                weight_kg=78.0,
+                birth_date=datetime.date(1999, 5, 20),
+                location="Warszawa",
+            )
+            session.add(test_profile)
+
         session.commit()
+
     print("Seed completed successfully.")
+
+
+if __name__ == "__main__":
+    seed_database()
 
 
 if __name__ == "__main__":

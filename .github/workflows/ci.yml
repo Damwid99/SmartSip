@@ -8,10 +8,15 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   check-code:
     name: Lint, Format, Type Check & Migrations
     runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: "ci-test-secret-key-at-least-32-chars"
 
     steps:
       - name: Checkout repository
