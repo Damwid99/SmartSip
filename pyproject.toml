@@ -1,17 +1,46 @@
 [project]
 name = "smartsip"
 version = "0.1.0"
-description = "Add your description here"
+description = "Aplikacja do monitorowania poziomu nawodnienia"
 readme = "README.md"
 authors = [
     { name = "Damwid99", email = "damwid@hotmail.com" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "fastapi[standard]>=0.115.0",
+    "sqlmodel>=0.0.22",
+    "pydantic-settings>=2.5.2",
+]
 
-[project.scripts]
-smartsip = "smartsip:main"
+# (Naprawiony warning) Nowy standard uv dla pakietów deweloperskich
+[dependency-groups]
+dev = [
+    "mypy>=1.11.2",
+    "ruff>=0.6.9",
+    "pytest>=8.3.3",
+]
 
-[build-system]
-requires = ["uv_build>=0.12.12,<0.13.0"]
-build-backend = "uv_build"
+# (Naprawiony błąd build) Mówimy uv, że to aplikacja końcowa, a nie biblioteka.
+[tool.uv]
+package = false
+
+# --- Konfiguracja RUFF (Linter i Formatter) ---
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "E",  # standardowe błędy
+    "F",  # nieużywane zmienne/importy
+    "I",  # automatyczne sortowanie importów (isort)
+    "UP"  # podpowiedzi upgrade'u do nowszej składni Pythona
+]
+ignore = []
+
+# --- Konfiguracja MYPY (Sprawdzanie typów) ---
+[tool.mypy]
+strict = true
+python_version = "3.14"
+ignore_missing_imports = true

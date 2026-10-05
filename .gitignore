@@ -1,10 +1,58 @@
-# Python-generated files
+# Python
 __pycache__/
-*.py[oc]
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
 build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
 wheels/
-*.egg-info
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Virtual environments
-.venv
+# Virtual Environment
+venv/
+.venv/
+env/
+.env_python/
+
+# Zmienne środowiskowe i klucze (NIGDY nie puszczać na gita!)
+.env
+.env.*
+!.env.example
+
+# Baza danych SQLite (plik bazy + pliki tymczasowe trybu WAL)
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Narzędzia (Ruff, Mypy, itp.)
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+coverage.xml
+htmlcov/
+.coverage
+
+# IDE (VSCode, PyCharm)
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml
