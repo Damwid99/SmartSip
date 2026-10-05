@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import Field, Relationship
 
@@ -26,4 +26,4 @@ class Container(Base, table=True):
 
     user_id: int | None = Field(default=None, foreign_key="users.id")
 
-    user: "User | None" = Relationship(back_populates="containers")
+    user: Optional["User"] = Relationship(back_populates="containers")  # noqa

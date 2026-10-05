@@ -1,6 +1,6 @@
 import datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import Field, Relationship
 
@@ -22,7 +22,7 @@ class User(Base, table=True):
     hashed_password: str
     is_active: bool = Field(default=True)
 
-    profile: "Profile | None" = Relationship(
+    profile: Optional["Profile"] = Relationship(  # noqa
         back_populates="user",
         sa_relationship_kwargs={
             "uselist": False,
