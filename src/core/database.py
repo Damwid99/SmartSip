@@ -1,7 +1,9 @@
+from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import event
-from sqlmodel import SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine
 
 from src.core.config import settings
 
@@ -19,13 +21,12 @@ POSTGRES_INDEXES_NAMING_CONVENTION = {
 
 SQLModel.metadata.naming_convention = POSTGRES_INDEXES_NAMING_CONVENTION
 
-
 engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
 
 
 # 3. Włączenie trybu WAL (Write-Ahead Logging) dla współbieżności SQLite
 @event.listens_for(engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
+def set_sqlite_pragma(dbapi_connection: Any, connection_record: Any) -> None:
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA journal_mode=WAL")
     cursor.execute("PRAGMA synchronous=NORMAL")
@@ -33,8 +34,6 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
     cursor.close()
 
 
-def get_session():
-    from sqlmodel import Session
-
+def get_session() -> Generator[Session]:
     with Session(engine) as session:
         yield session

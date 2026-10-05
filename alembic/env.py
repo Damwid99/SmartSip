@@ -1,5 +1,9 @@
 import logging  # noqa: F401
+import sys
 from logging.config import fileConfig
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from alembic import context
 from sqlmodel import SQLModel
@@ -47,7 +51,7 @@ def run_migrations_online() -> None:
             context.run_migrations()
 
 
-if context.is_offline_env():
+if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
