@@ -65,7 +65,7 @@ def get_today_progress(
             detail="Użytkownik nie posiada uzupełnionego profilu fizycznego",
         )
 
-    today = datetime.date.today()
+    today = datetime.datetime.now(datetime.UTC).date()
 
     target = session.exec(
         select(DailyTarget).where(

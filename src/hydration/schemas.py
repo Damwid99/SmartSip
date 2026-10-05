@@ -17,7 +17,7 @@ class HydrationLogRead(BaseModel):
     id: int
     user_id: int
     drink_type_id: int
-    volume: int
+    volume_ml: int
     effective_ml: float
     created_at: datetime.datetime
 
