@@ -1,3 +1,4 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -5,7 +6,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "SmartSip"
     DATABASE_URL: str = "sqlite:///./data/hydration.db"
 
-    SECRET_KEY: str
+    SECRET_KEY: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 
@@ -42,6 +43,14 @@ class Settings(BaseSettings):
     HOURLY_INTAKE_MAX_ML: int = 1000
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @model_validator(mode="after")
+    def validate_secret_key(self) -> "Settings":
+        if not self.SECRET_KEY or len(self.SECRET_KEY) < 32:
+            raise ValueError(
+                "SECRET_KEY musi być ustawiony w pliku .env i mieć co najmniej 32 znaki!"
+            )
+        return self
 
 
 settings = Settings()

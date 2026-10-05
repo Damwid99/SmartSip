@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class HydrationLogCreate(BaseModel):
     drink_type_id: int
-    volume: int = Field(gt=0, description="Objętość w ml, musi być większa od 0")
+    volume_ml: int = Field(gt=0, description="Objętość w ml, musi być większa od 0")
     timestamp: datetime.datetime | None = Field(
         default=None, description="Opcjonalny czas spożycia; domyślnie czas rejestru"
     )

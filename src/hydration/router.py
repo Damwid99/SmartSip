@@ -79,7 +79,7 @@ def get_today_progress(
         apparent_temp_c = 20.0
         active_kcal = 0.0
 
-        total_target = calculate_total_target_ml(current_user, apparent_temp_c, active_kcal)
+        total_target = calculate_total_target_ml(current_user.profile, apparent_temp_c, active_kcal)
         target = DailyTarget(
             user_id=current_user.id,
             date=today,

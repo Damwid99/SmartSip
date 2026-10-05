@@ -16,7 +16,6 @@ router = APIRouter(prefix="/catalog", tags=["Catalog"])
 def list_drink_types(
     session: Annotated[Session, Depends(get_session)],
 ) -> list[DrinkType]:
-    """Pobiera listę wszystkich dostępnych napojów posortowaną alfabetycznie."""
     drinks = session.exec(select(DrinkType).order_by(col(DrinkType.name).asc())).all()
     return list(drinks)
 
@@ -26,31 +25,30 @@ def list_containers(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
 ) -> list[ContainerRead]:
-    """
-    Pobiera naczynia systemowe (dostępne dla wszystkich)
-    oraz prywatne naczynia aktualnie zalogowanego użytkownika.
-    """
     assert current_user.id is not None
 
     query = (
         select(Container)
-        .where(or_(Container.user_id.is_(None), Container.user_id == current_user.id))
+        .where(or_(col(Container.user_id).is_(None), col(Container.user_id) == current_user.id))
         .order_by(col(Container.volume_ml).asc())
     )
     containers = session.exec(query).all()
 
-    return [
-        ContainerRead(
-            id=c.id,
-            name=c.name,
-            volume_ml=c.volume_ml,
-            icon=c.icon,
-            user_id=c.user_id,
-            is_custom=c.user_id is not None,
-            created_at=c.created_at,
+    result: list[ContainerRead] = []
+    for c in containers:
+        assert c.id is not None
+        result.append(
+            ContainerRead(
+                id=c.id,
+                name=c.name,
+                volume_ml=c.volume_ml,
+                icon=c.icon,
+                user_id=c.user_id,
+                is_custom=c.user_id is not None,
+                created_at=c.created_at,
+            )
         )
-        for c in containers
-    ]
+    return result
 
 
 @router.post(
@@ -63,7 +61,6 @@ def create_custom_container(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
 ) -> ContainerRead:
-    """Tworzy nowe prywatne naczynie powiązane z kontem użytkownika."""
     assert current_user.id is not None
 
     container = Container(
@@ -75,6 +72,8 @@ def create_custom_container(
     session.add(container)
     session.commit()
     session.refresh(container)
+
+    assert container.id is not None
 
     return ContainerRead(
         id=container.id,
@@ -96,7 +95,6 @@ def delete_custom_container(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
 ) -> None:
-    """Usuwa customowe naczynie. Próba usunięcia naczynia systemowego zwraca błąd 403."""
     assert current_user.id is not None
 
     container = session.get(Container, container_id)
