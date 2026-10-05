@@ -5,6 +5,10 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "SmartSip"
     DATABASE_URL: str = "sqlite:///./data/hydration.db"
 
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
+
     # --- Profil ---
     MIN_ADULT_AGE: int = 18
 
