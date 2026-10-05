@@ -10,7 +10,7 @@ on:
 
 jobs:
   check-code:
-    name: Lint, Format, and Type Check
+    name: Lint, Format, Type Check & Migrations
     runs-on: ubuntu-latest
 
     steps:
@@ -37,3 +37,15 @@ jobs:
 
       - name: Type check (Mypy)
         run: uv run mypy src/
+
+      - name: Prepare database directory
+        run: mkdir -p data
+
+      - name: Test migrations (Upgrade)
+        run: uv run alembic upgrade head
+
+      - name: Check for missing migrations
+        run: uv run alembic check
+        
+      - name: Run tests (Pytest)
+        run: uv run pytest
