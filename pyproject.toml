@@ -11,6 +11,7 @@ dependencies = [
     "fastapi[standard]>=0.115.0",
     "sqlmodel>=0.0.22",
     "pydantic-settings>=2.5.2",
+    "alembic>=1.13.3",
 ]
 
 # (Naprawiony warning) Nowy standard uv dla pakietów deweloperskich
@@ -32,12 +33,14 @@ target-version = "py314"
 
 [tool.ruff.lint]
 select = [
-    "E",  # standardowe błędy
-    "F",  # nieużywane zmienne/importy
-    "I",  # automatyczne sortowanie importów (isort)
-    "UP"  # podpowiedzi upgrade'u do nowszej składni Pythona
+    "E",   # standardowe błędy
+    "F",   # nieużywane zmienne/importy
+    "I",   # automatyczne sortowanie importów (isort)
+    "UP",  # podpowiedzi upgrade'u do nowszej składni Pythona
 ]
-ignore = []
+ignore = [
+    "UP037",
+]
 
 # --- Konfiguracja MYPY (Sprawdzanie typów) ---
 [tool.mypy]
@@ -45,3 +48,8 @@ strict = true
 python_version = "3.14"
 ignore_missing_imports = true
 explicit_package_bases = true
+exclude = ["alembic"]
+
+[tool.ruff.lint.per-file-ignores]
+"alembic/env.py" = ["I001", "F401"]
+"alembic/versions/*" = ["ALL"]
