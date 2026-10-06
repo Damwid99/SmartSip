@@ -5,7 +5,7 @@ def test_full_user_journey_e2e(client: TestClient):
     # 1. Rejestracja nowego użytkownika
     register_payload = {
         "email": "test@example.com",  # Używamy standardowej domeny
-        "password": "StrongPassword123!",
+        "google_id": "google-test@example.com",
         "profile": {
             "username": "tester",
             "gender": "male",
@@ -21,14 +21,11 @@ def test_full_user_journey_e2e(client: TestClient):
     user_data = response.json()
     assert user_data["email"] == "test@example.com"
 
-    # 2. Logowanie i pobranie tokena JWT
-    login_payload = {
-        "username": "test@example.com",  # Tu też musimy zaktualizować email
-        "password": "StrongPassword123!",
-    }
-
-    # Uwaga: OAuth2 używa form-data (data=...), a nie JSON-a (json=...)
-    response = client.post("/users/token", data=login_payload)
+    # 2. Logowanie przez Google i pobranie tokena JWT
+    response = client.post(
+        "/users/auth/google",
+        json={"id_token": "google-test@example.com"},
+    )
     assert response.status_code == 200, response.text
 
     token_data = response.json()

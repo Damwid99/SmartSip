@@ -9,7 +9,7 @@ def register_payload(
 ) -> dict[str, object]:
     return {
         "email": email,
-        "password": "StrongPassword123!",
+        "google_id": f"google-{email}",
         "profile": {
             "username": username,
             "gender": "male",
@@ -29,8 +29,8 @@ def register_and_login(
     assert response.status_code == 201, response.text
 
     response = client.post(
-        "/users/token",
-        data={"username": email, "password": "StrongPassword123!"},
+        "/users/auth/google",
+        json={"id_token": f"google-{email}"},
     )
     assert response.status_code == 200, response.text
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
@@ -60,14 +60,17 @@ def test_registration_rejects_duplicate_email_and_username(client: TestClient):
     assert "username" in response.json()["detail"]
 
 
-def test_registration_validates_email_password_and_profile(client: TestClient):
+def test_registration_validates_email_and_profile(client: TestClient):
     invalid_payload = register_payload()
     invalid_payload["email"] = "not-an-email"
     response = client.post("/users", json=invalid_payload)
     assert response.status_code == 422
 
-    invalid_payload = register_payload(email="short@example.com", username="short-user")
-    invalid_payload["password"] = "short"
+    invalid_payload = register_payload(
+        email="missing-google@example.com",
+        username="missing-google",
+    )
+    del invalid_payload["google_id"]
     response = client.post("/users", json=invalid_payload)
     assert response.status_code == 422
 
@@ -77,21 +80,36 @@ def test_registration_validates_email_password_and_profile(client: TestClient):
     assert response.status_code == 422
 
 
-def test_login_and_protected_routes_require_valid_credentials(client: TestClient):
+def test_google_login_and_protected_routes_require_valid_credentials(client: TestClient):
     headers = register_and_login(client)
 
     response = client.get("/users/me")
     assert response.status_code == 401
 
     response = client.post(
-        "/users/token",
-        data={"username": "api@example.com", "password": "wrong-password"},
+        "/users/auth/google",
+        json={"id_token": "google-wrong@example.com"},
     )
     assert response.status_code == 401
 
     response = client.get("/users/me", headers=headers)
     assert response.status_code == 200
     assert response.json()["profile"]["username"] == "api-user"
+
+
+def test_google_login_rejects_invalid_google_token(client: TestClient, monkeypatch):
+    def reject_token(token: str) -> dict[str, object]:
+        raise ValueError("invalid token")
+
+    monkeypatch.setattr("src.users.router.verify_google_token", reject_token)
+
+    response = client.post(
+        "/users/auth/google",
+        json={"id_token": "invalid-token"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Niepoprawny token Google"
 
 
 def test_profile_update_changes_only_supported_fields(client: TestClient):

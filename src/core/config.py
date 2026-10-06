@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
+    GOOGLE_CLIENT_ID: str = ""
 
     # --- Profil ---
     MIN_ADULT_AGE: int = 18
@@ -41,6 +42,8 @@ class Settings(BaseSettings):
     # --- Limity bezpieczeństwa ---
     DAILY_TARGET_MAX_ML: int = 5000
     HOURLY_INTAKE_MAX_ML: int = 1000
+
+    UI_API_BASE_URL: str = "http://127.0.0.1:8000"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
