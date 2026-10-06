@@ -1,32 +1,54 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 
 from src.core.database import get_session
 from src.core.security import (
     create_access_token,
     get_current_user,
-    get_password_hash,
-    verify_password,
+    verify_google_token,
 )
 from src.users.models import Profile, User
-from src.users.schemas import ProfileRead, ProfileUpdate, Token, UserCreate, UserRead
+from src.users.schemas import (
+    GoogleAuthRequest,
+    ProfileRead,
+    ProfileUpdate,
+    Token,
+    UserCreate,
+    UserRead,
+)
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.post("/token", response_model=Token)
-def login_for_access_token(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+@router.post("/auth/google", response_model=Token)
+def login_with_google(
+    payload: GoogleAuthRequest,
     session: Annotated[Session, Depends(get_session)],
 ) -> Token:
-    user = session.exec(select(User).where(User.email == form_data.username)).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    try:
+        google_claims = verify_google_token(payload.id_token)
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Niepoprawny email lub hasło",
+            detail="Niepoprawny token Google",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    google_id = google_claims.get("sub")
+    if not isinstance(google_id, str) or not google_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token Google nie zawiera identyfikatora użytkownika",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user = session.exec(select(User).where(User.google_id == google_id)).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Użytkownik Google nie jest zarejestrowany",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -58,11 +80,9 @@ def register_user(
             detail="Nazwa użytkownika (username) jest już zajęta",
         )
 
-    # Bezpieczne hashowanie hasła Argon2
-    hashed_pwd = get_password_hash(payload.password)
     user = User(
         email=payload.email,
-        hashed_password=hashed_pwd,
+        google_id=payload.google_id,
         is_active=True,
     )
     session.add(user)

@@ -34,3 +34,11 @@ def client_fixture(session: Session):
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def mock_google_token_verification(monkeypatch: pytest.MonkeyPatch):
+    def verify(token: str) -> dict[str, object]:
+        return {"sub": token, "email": f"{token}@example.com"}
+
+    monkeypatch.setattr("src.users.router.verify_google_token", verify)
