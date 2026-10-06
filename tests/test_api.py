@@ -112,6 +112,53 @@ def test_google_login_rejects_invalid_google_token(client: TestClient, monkeypat
     assert response.json()["detail"] == "Niepoprawny token Google"
 
 
+def test_google_login_accepts_access_token(client: TestClient, monkeypatch):
+    client.post("/users", json=register_payload())
+
+    def verify_access_token(token: str) -> dict[str, object]:
+        assert token == "google-api@example.com"
+        return {"sub": "google-api@example.com"}
+
+    monkeypatch.setattr("src.users.router.verify_google_access_token", verify_access_token)
+
+    response = client.post(
+        "/users/auth/google",
+        json={"access_token": "google-api@example.com"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["token_type"] == "bearer"
+
+
+def test_google_registration_accepts_access_token(client: TestClient, monkeypatch):
+    def verify_access_token(token: str) -> dict[str, object]:
+        assert token == "google-register@example.com"
+        return {
+            "sub": "google-register@example.com",
+            "email": "google-register@example.com",
+            "email_verified": True,
+        }
+
+    monkeypatch.setattr("src.users.router.verify_google_access_token", verify_access_token)
+
+    response = client.post(
+        "/users/auth/google/register",
+        json={
+            "access_token": "google-register@example.com",
+            "profile": {
+                "username": "google-register",
+                "gender": "female",
+                "weight_kg": 65.0,
+                "birth_date": "1990-01-01",
+                "location": "Warszawa",
+            },
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    assert "access_token" in response.json()
+
+
 def test_profile_update_changes_only_supported_fields(client: TestClient):
     headers = register_and_login(client)
 
