@@ -1,17 +1,22 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
+from src.core.config import settings
 from src.core.database import get_session
 from src.core.security import (
     create_access_token,
     get_current_user,
+    verify_google_access_token,
     verify_google_token,
 )
+from src.hydration.services import calculate_age
 from src.users.models import Profile, User
 from src.users.schemas import (
     GoogleAuthRequest,
+    GoogleCredential,
+    GoogleRegisterRequest,
     ProfileRead,
     ProfileUpdate,
     Token,
@@ -22,20 +27,27 @@ from src.users.schemas import (
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
+def _resolve_google_claims(credential: GoogleCredential) -> dict[str, Any]:
+    try:
+        if credential.id_token:
+            return verify_google_token(credential.id_token)
+        if credential.access_token:
+            return verify_google_access_token(credential.access_token)
+    except ValueError:
+        pass
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Niepoprawny token Google",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
 @router.post("/auth/google", response_model=Token)
 def login_with_google(
     payload: GoogleAuthRequest,
     session: Annotated[Session, Depends(get_session)],
 ) -> Token:
-    try:
-        google_claims = verify_google_token(payload.id_token)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Niepoprawny token Google",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
+    google_claims = _resolve_google_claims(payload)
     google_id = google_claims.get("sub")
     if not isinstance(google_id, str) or not google_id:
         raise HTTPException(
@@ -61,6 +73,64 @@ def login_with_google(
     assert user.id is not None
     access_token = create_access_token(subject=user.id)
     return Token(access_token=access_token, token_type="bearer")
+
+
+@router.post("/auth/google/register", response_model=Token, status_code=status.HTTP_201_CREATED)
+def register_with_google(
+    payload: GoogleRegisterRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> Token:
+    claims = _resolve_google_claims(payload)
+    google_id = str(claims["sub"])
+    email = claims.get("email")
+
+    if (
+        not isinstance(email, str)
+        or not email
+        or claims.get("email_verified") not in (True, "true")
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Konto Google nie ma zweryfikowanego adresu e-mail",
+        )
+    if session.exec(select(User).where(User.google_id == google_id)).first():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Konto już istnieje")
+    if session.exec(select(User).where(User.email == email)).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Użytkownik o takim adresie email już istnieje",
+        )
+    if calculate_age(payload.profile.birth_date) < settings.MIN_ADULT_AGE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Aplikacja przewidziana dla dorosłych",
+        )
+    if session.exec(select(Profile).where(Profile.username == payload.profile.username)).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nazwa użytkownika (username) jest już zajęta",
+        )
+
+    user = User(email=email, google_id=google_id, is_active=True)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    assert user.id is not None
+    session.add(Profile(user_id=user.id, **payload.profile.model_dump()))
+    session.commit()
+
+    return Token(access_token=create_access_token(subject=user.id))
+
+
+@router.post("/auth/dev", response_model=Token)
+def dev_login(session: Annotated[Session, Depends(get_session)]) -> Token:
+    if not settings.DEV_LOGIN_ENABLED:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+    user = session.get(User, 1)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brak użytkownika o ID=1")
+    return Token(access_token=create_access_token(subject=1))
 
 
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
@@ -119,6 +189,8 @@ def update_current_user_profile(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
 ) -> Profile:
+    assert current_user.id is not None
+
     profile = session.exec(select(Profile).where(Profile.user_id == current_user.id)).first()
     if not profile:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profil nie istnieje")
