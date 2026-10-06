@@ -1,6 +1,7 @@
 import datetime
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from src.users.models import Gender
 
@@ -8,14 +9,6 @@ from src.users.models import Gender
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
-
-
-class TokenData(BaseModel):
-    user_id: int | None = None
-
-
-class GoogleAuthRequest(BaseModel):
-    id_token: str
 
 
 class ProfileBase(BaseModel):
@@ -60,3 +53,22 @@ class UserRead(BaseModel):
     is_active: bool
     created_at: datetime.datetime
     profile: ProfileRead | None = None
+
+
+class GoogleCredential(BaseModel):
+    id_token: str | None = None
+    access_token: str | None = None
+
+    @model_validator(mode="after")
+    def require_one(self) -> Self:  # noqa F821
+        if not (self.id_token or self.access_token):
+            raise ValueError("Wymagany jest id_token lub access_token")
+        return self
+
+
+class GoogleAuthRequest(GoogleCredential):
+    pass
+
+
+class GoogleRegisterRequest(GoogleCredential):
+    profile: ProfileCreate

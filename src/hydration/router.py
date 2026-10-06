@@ -21,7 +21,7 @@ def log_drink(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
 ) -> HydrationLog:
-    assert current_user.id is not None  # Zapewnienie typu dla mypy strict
+    assert current_user.id is not None
 
     drink_type = session.get(DrinkType, payload.drink_type_id)
     if not drink_type:
@@ -75,7 +75,6 @@ def get_today_progress(
     ).first()
 
     if not target:
-        # TODO Wartości domyślne do czasu podpięcia pogody i Google Fit
         apparent_temp_c = 20.0
         active_kcal = 0.0
 
@@ -92,7 +91,6 @@ def get_today_progress(
         session.commit()
         session.refresh(target)
 
-    # 2. Zakres czasowy dla dzisiejszego dnia (UTC)
     today_start = datetime.datetime.combine(today, datetime.time.min, tzinfo=datetime.UTC)
     today_end = datetime.datetime.combine(today, datetime.time.max, tzinfo=datetime.UTC)
 
