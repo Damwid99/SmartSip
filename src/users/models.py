@@ -19,7 +19,7 @@ class Gender(StrEnum):
 class User(Base, table=True):
     __tablename__ = "users"
     email: str = Field(unique=True, index=True)
-    hashed_password: str
+    google_id: str = Field(unique=True, index=True)
     is_active: bool = Field(default=True)
 
     profile: Optional["Profile"] = Relationship(  # noqa

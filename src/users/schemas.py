@@ -14,6 +14,10 @@ class TokenData(BaseModel):
     user_id: int | None = None
 
 
+class GoogleAuthRequest(BaseModel):
+    id_token: str
+
+
 class ProfileBase(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     gender: Gender
@@ -43,11 +47,7 @@ class ProfileRead(ProfileBase):
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str = Field(
-        min_length=8,
-        max_length=128,
-        description="Hasło musi mieć minimum 8 znaków",
-    )
+    google_id: str
     profile: ProfileCreate
 
 
@@ -56,6 +56,7 @@ class UserRead(BaseModel):
 
     id: int
     email: EmailStr
+    google_id: str
     is_active: bool
     created_at: datetime.datetime
     profile: ProfileRead | None = None

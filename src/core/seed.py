@@ -37,7 +37,6 @@ import src.hydration.models  # noqa: F401
 import src.users.models  # noqa: F401
 from src.catalog.models import Container, DrinkType
 from src.core.database import engine
-from src.core.security import get_password_hash
 from src.users.models import Gender, Profile, User
 
 Evidence = Literal["A", "B", "C"]
@@ -259,8 +258,9 @@ def seed_database() -> None:
         if not existing_user:
             test_user = User(
                 email="dev@smartsip.local",
-                hashed_password=get_password_hash("SuperSecret123!"),
+                google_id="test_mock_google_id_12345",  # Nowe pole
                 is_active=True,
+                # Usunięte hashed_password
             )
             session.add(test_user)
             session.commit()

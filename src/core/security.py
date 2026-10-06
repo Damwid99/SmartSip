@@ -5,25 +5,25 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
-from pwdlib import PasswordHash
-from pwdlib.hashers.argon2 import Argon2Hasher
 from sqlmodel import Session
 
 from src.core.config import settings
 from src.core.database import get_session
 from src.users.models import User
 
-password_hash = PasswordHash((Argon2Hasher(),))
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/auth/google")
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return password_hash.verify(plain_password, hashed_password)
+def verify_google_token(token: str) -> dict[str, object]:
+    from google.auth.transport import requests as google_requests
+    from google.oauth2 import id_token
 
-
-def get_password_hash(password: str) -> str:
-    return password_hash.hash(password)
+    claims = id_token.verify_oauth2_token(  # type: ignore[no-untyped-call]
+        token,
+        google_requests.Request(),
+        settings.GOOGLE_CLIENT_ID,
+    )
+    return {str(key): value for key, value in claims.items()}
 
 
 def create_access_token(subject: str | int, expires_delta: datetime.timedelta | None = None) -> str:
