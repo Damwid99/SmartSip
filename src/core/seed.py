@@ -258,9 +258,8 @@ def seed_database() -> None:
         if not existing_user:
             test_user = User(
                 email="dev@smartsip.local",
-                google_id="test_mock_google_id_12345",  # Nowe pole
+                google_id="test_mock_google_id_12345",
                 is_active=True,
-                # Usunięte hashed_password
             )
             session.add(test_user)
             session.commit()
@@ -280,10 +279,6 @@ def seed_database() -> None:
         session.commit()
 
     print("Seed completed successfully.")
-
-
-if __name__ == "__main__":
-    seed_database()
 
 
 if __name__ == "__main__":
