@@ -61,7 +61,7 @@ def get_current_user(
         if user_id_str is None:
             raise credentials_exception
         user_id = int(user_id_str)
-    except (InvalidTokenError, ValueError):
+    except InvalidTokenError, ValueError:
         raise credentials_exception from None
 
     user = session.get(User, user_id)
